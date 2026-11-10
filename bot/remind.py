@@ -8,6 +8,7 @@ import datetime as dt
 import json
 import os
 import sys
+import urllib.error
 import urllib.parse
 import urllib.request
 
@@ -81,15 +82,31 @@ def evening(d):
 
 
 def send(text):
-    token = os.environ["TELEGRAM_TOKEN"]
-    chat = os.environ["TELEGRAM_CHAT_ID"]
+    token = os.environ.get("TELEGRAM_TOKEN", "").strip()
+    chat = os.environ.get("TELEGRAM_CHAT_ID", "").strip()
+    if not token or not chat:
+        sys.exit("Нет секрета TELEGRAM_TOKEN или TELEGRAM_CHAT_ID в настройках репозитория")
     data = urllib.parse.urlencode({"chat_id": chat, "text": text,
                                    "disable_web_page_preview": "true"}).encode()
     req = urllib.request.Request(f"https://api.telegram.org/bot{token}/sendMessage", data=data)
-    with urllib.request.urlopen(req, timeout=20) as r:
-        ok = json.load(r).get("ok")
-    if not ok:
-        sys.exit("Telegram не принял сообщение")
+    try:
+        with urllib.request.urlopen(req, timeout=20) as r:
+            body = json.load(r)
+    except urllib.error.HTTPError as e:
+        try:
+            body = json.load(e)
+        except Exception:
+            body = {"ok": False, "error_code": e.code, "description": ""}
+    if body.get("ok"):
+        return
+    code, desc = body.get("error_code"), body.get("description", "")
+    hint = {
+        401: "ключ бота неверный — проверьте секрет TELEGRAM_TOKEN (весь ключ от BotFather, с двоеточием)",
+        404: "ключ бота неверный — проверьте секрет TELEGRAM_TOKEN",
+        400: "Telegram не знает такой чат — проверьте TELEGRAM_CHAT_ID (только цифры из @userinfobot) и что вы нажали Start у своего бота",
+        403: "бот не может вам писать — откройте своего бота и нажмите Start",
+    }.get(code, "")
+    sys.exit(f"Telegram ответил ошибкой {code}: {desc}. {hint}")
 
 
 if __name__ == "__main__":
