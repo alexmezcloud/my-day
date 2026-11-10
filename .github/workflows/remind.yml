@@ -1,0 +1,27 @@
+name: Напоминания в Telegram
+
+on:
+  schedule:
+    - cron: "50 4 * * *"    # 07:50 по Москве — утро
+    - cron: "45 19 * * *"   # 22:45 по Москве — вечер
+  workflow_dispatch:
+    inputs:
+      kind:
+        description: "Какое сообщение отправить"
+        type: choice
+        options: [morning, evening]
+        default: morning
+
+jobs:
+  send:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Отправить
+        env:
+          TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: python bot/remind.py "${{ github.event.inputs.kind || 'auto' }}"

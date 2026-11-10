@@ -18,3 +18,15 @@
 ## Что поменять в плане
 
 В `index.html` в начале скрипта: `DINNER` — ужины по дням, `MEALS` — завтрак/обед/перекус, `WORKOUT` — упражнения, `SHOP` — список покупок, `START` — дата старта программы.
+
+## Напоминания в Telegram
+
+Бот присылает сообщения в 07:50 и 22:45 по Москве: тренировка, ужин, ретинол, дела дня, отбой. Отправляет GitHub Actions по расписанию (`.github/workflows/remind.yml`, код — `bot/remind.py`), свой сервер не нужен. GitHub может задерживать запуск на 5–15 минут.
+
+Настройка один раз: Settings → Secrets and variables → Actions → New repository secret:
+- `TELEGRAM_TOKEN` — ключ бота от @BotFather;
+- `TELEGRAM_CHAT_ID` — ваш номер в Telegram (узнать у @userinfobot).
+
+Проверка: вкладка Actions → «Напоминания в Telegram» → Run workflow.
+
+Важно: если в репозитории 60 дней не было изменений, GitHub отключает расписание — тогда Actions → «Напоминания в Telegram» → Enable workflow.
