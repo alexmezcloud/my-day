@@ -1,0 +1,356 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#23744F">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Мой день">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon-180.png">
+<title>Мой день</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;700&family=Manrope:wght@400;500;600;700&family=JetBrains+Mono:wght@500&display=swap">
+<style>
+html{-webkit-text-size-adjust:100%}
+[hidden]{display:none!important}
+img{max-width:100%}
+body{margin:0}
+:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+/* Layout: one narrow phone column — sticky date header, tab bar, stacked cards; the day's verdict on top */
+:root{
+  --bg:#EEF1EC; --surface:#FFFFFF; --ink:#16201B; --muted:#5E6B64; --line:#D7DDD6;
+  --accent:#23744F; --accent-soft:#DCEFE4; --warm:#C2410C; --warm-soft:#FBE7DC; --gold:#B7791F;
+  --f-display:"Unbounded","Manrope",system-ui,sans-serif;
+  --f-body:"Manrope",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-num:"JetBrains Mono",ui-monospace,Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0F1512; --surface:#18211C; --ink:#E7EEE9; --muted:#97A59D; --line:#2A3730;
+  --accent:#5CC793; --accent-soft:#1D3328; --warm:#F08A5D; --warm-soft:#3A2419; --gold:#E2B04F; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0F1512; --surface:#18211C; --ink:#E7EEE9; --muted:#97A59D; --line:#2A3730;
+  --accent:#5CC793; --accent-soft:#1D3328; --warm:#F08A5D; --warm-soft:#3A2419; --gold:#E2B04F; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.45;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:0 32px}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);background:var(--bg);z-index:10}
+.wrap{max-width:560px;margin:0 auto;display:flex;flex-direction:column;gap:14px}
+header{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg);padding-block:14px 8px;display:flex;flex-direction:column;gap:10px}
+.date{font-family:var(--f-num);font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+h1{font-family:var(--f-display);font-size:22px;line-height:1.2;margin:0;text-wrap:balance;font-weight:700}
+.tabs{display:flex;gap:6px;overflow-x:auto}
+.tabs button{flex:1 0 auto;font:600 13px var(--f-body);color:var(--muted);background:transparent;border:1px solid var(--line);border-radius:999px;padding:7px 12px;cursor:pointer}
+.tabs button[aria-selected="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:14px 16px;display:flex;flex-direction:column;gap:10px;min-width:0}
+.card h2{font-family:var(--f-display);font-size:13px;font-weight:500;letter-spacing:.06em;text-transform:uppercase;margin:0;color:var(--muted)}
+.verdict{display:flex;flex-wrap:wrap;gap:8px}
+.pill{font-weight:700;font-size:13px;border-radius:999px;padding:6px 12px;background:var(--accent-soft);color:var(--accent)}
+.pill.warm{background:var(--warm-soft);color:var(--warm)}
+.pill.off{background:transparent;border:1px dashed var(--line);color:var(--muted)}
+.rows{display:flex;flex-direction:column;gap:8px}
+.row{display:grid;grid-template-columns:92px 1fr;gap:10px;align-items:baseline}
+.row b{font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);font-weight:700}
+.row span{min-width:0}
+.mode{font-family:var(--f-num);font-size:12px;color:var(--gold)}
+ol.ex{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:4px}
+ol.ex li span{font-family:var(--f-num);font-size:12px;color:var(--muted);margin-left:6px}
+.checks{display:flex;flex-direction:column;gap:2px}
+.check{display:flex;align-items:center;gap:12px;padding:9px 4px;border-bottom:1px solid var(--line);cursor:pointer;user-select:none}
+.check:last-child{border-bottom:0}
+.check input{width:22px;height:22px;accent-color:var(--accent);flex:none;cursor:pointer}
+.check.done span{color:var(--muted);text-decoration:line-through}
+.score{font-family:var(--f-num);font-size:13px;color:var(--muted)}
+.streak{display:grid;grid-template-columns:repeat(14,1fr);gap:4px}
+.streak i{aspect-ratio:1;border-radius:5px;background:var(--line);display:block}
+.streak i.l1{background:var(--accent-soft)} .streak i.l2{background:color-mix(in srgb,var(--accent) 55%,var(--accent-soft))} .streak i.l3{background:var(--accent)}
+.streak i.today{outline:2px solid var(--ink);outline-offset:1px}
+.legend{display:flex;justify-content:space-between;font-size:12px;color:var(--muted)}
+.todo{display:flex;gap:10px;align-items:flex-start;font-weight:600}
+.todo::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--warm);margin-top:7px;flex:none}
+table{border-collapse:collapse;width:100%;font-size:14px}
+.tw{overflow-x:auto}
+th,td{text-align:left;padding:8px 6px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:700}
+tr.is-today td{background:var(--accent-soft)}
+td.num,th.num{font-family:var(--f-num);font-variant-numeric:tabular-nums;white-space:nowrap}
+form.m{display:grid;grid-template-columns:1fr 1fr auto;gap:8px;align-items:end}
+form.m label{display:flex;flex-direction:column;gap:4px;font-size:12px;color:var(--muted);font-weight:600;min-width:0}
+input[type=number],input[type=date]{font:500 16px var(--f-num);color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:9px 10px;width:100%;min-width:0}
+.btn{font:700 14px var(--f-body);background:var(--accent);color:var(--surface);border:0;border-radius:10px;padding:11px 14px;cursor:pointer}
+.btn.ghost{background:transparent;color:var(--ink);border:1px solid var(--line)}
+.big{display:flex;gap:18px;flex-wrap:wrap}
+.big div{display:flex;flex-direction:column}
+.big strong{font-family:var(--f-num);font-size:26px;font-variant-numeric:tabular-nums}
+.big small{color:var(--muted);font-size:12px}
+.delta-good{color:var(--accent)} .delta-bad{color:var(--warm)}
+svg text{fill:var(--muted);font-family:var(--f-num);font-size:10px}
+.note{font-size:12px;color:var(--muted)}
+.shopgrp{display:flex;flex-direction:column;gap:2px}
+.shopgrp h3{font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin:8px 0 2px}
+.actions{display:flex;gap:8px;flex-wrap:wrap}
+@media (prefers-reduced-motion:no-preference){.check input{transition:transform .12s}.check input:active{transform:scale(.9)}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="date" id="date">—</div>
+    <h1 id="headline">Сегодня</h1>
+    <nav class="tabs" role="tablist">
+      <button role="tab" id="t-today" aria-selected="true" data-v="today">Сегодня</button>
+      <button role="tab" id="t-week" aria-selected="false" data-v="week">Неделя</button>
+      <button role="tab" id="t-body" aria-selected="false" data-v="body">Замеры</button>
+      <button role="tab" id="t-shop" aria-selected="false" data-v="shop">Покупки</button>
+    </nav>
+  </header>
+
+  <section id="v-today" class="wrap"></section>
+  <section id="v-week" class="wrap" hidden></section>
+  <section id="v-body" class="wrap" hidden></section>
+  <section id="v-shop" class="wrap" hidden></section>
+  <p class="note" id="store-note"></p>
+</div>
+
+<script>
+(() => {
+/* ---------- plan ---------- */
+const START = "2026-11-09"; // понедельник, неделя 1
+const DOW = ["Вс","Пн","Вт","Ср","Чт","Пт","Сб"];
+const DOW_FULL = ["воскресенье","понедельник","вторник","среда","четверг","пятница","суббота"];
+const MON = ["января","февраля","марта","апреля","мая","июня","июля","августа","сентября","октября","ноября","декабря"];
+const DINNER = {
+  1:{t:"Куриные бёдра без кожи + брокколи", m:"курица 200 °C 18–22 мин · овощи 200 °C 12–15"},
+  2:{t:"Лосось или скумбрия + мексиканская смесь", m:"рыба 180 °C 10–12 мин · овощи 200 °C 12–15"},
+  3:{t:"Креветки + стручковая фасоль", m:"креветки 200 °C 6–8 мин · овощи 200 °C 12–15"},
+  4:{t:"Куриная грудка + кабачок и перец", m:"курица 200 °C 18–22 мин · овощи 200 °C 12–15"},
+  5:{t:"Котлеты из фарша индейки + цветная капуста", m:"котлеты 190 °C 14–16 мин · овощи 200 °C 12–15"},
+  6:{t:"Свободный ужин", m:"один раз в неделю, без добавки"},
+  0:{t:"Творожная или овощная запеканка + рыба", m:"запеканка 160–170 °C 25–30 мин"}
+};
+const MEALS = [
+  ["Завтрак","3 яйца + 2 хлебца + огурец, или скир 300 г + ягоды + 30 г овсянки, или 4 сырника"],
+  ["Обед","Контейнер: 200 г курицы/индейки + 150 г гречки или риса + овощи"],
+  ["Перекус","Творог 5% 200 г или белковый йогурт + яблоко"]
+];
+const WORKOUT = {
+  "А":[["Жим ногами / присед с гантелью","3 × 10–12"],["Жим гантелей лёжа","3 × 8–12"],["Тяга верхнего блока","3 × 10–12"],["Румынская тяга с гантелями","3 × 10"],["Планка","3 × 30–45 с"]],
+  "Б":[["Выпады / зашагивания","3 × 10 на ногу"],["Жим гантелей сидя","3 × 10–12"],["Тяга гантели / горизонтальная тяга","3 × 10–12"],["Сгибание ног в тренажёре","3 × 12"],["Подъём ног","3 × 10–15"]]
+};
+const SHOP = [
+  ["Белок",[["chicken","Курица: филе и бёдра без кожи — 2,5 кг"],["turkey","Фарш индейки — 500 г"],["salmon","Лосось или скумбрия — 500 г"],["shrimp","Креветки чищеные — 400 г"],["whitefish","Треска или минтай — 300 г"],["eggs","Яйца — 20 шт"],["cottage","Творог 5% — 2,5 кг"],["skyr","Греческий йогурт / скир — 1,2 кг"]]],
+  ["Крупы и хлеб",[["buck","Гречка — 500 г"],["rice","Рис — 500 г"],["oats","Овсянка — 500 г"],["crisp","Цельнозерновые хлебцы — 1 уп."]]],
+  ["Овощи и фрукты",[["frozen","Замороженные овощи — 6 пакетов по 400 г"],["cucumber","Огурцы — 1 кг, помидоры — 500 г"],["apples","Яблоки — 7 шт"],["berries","Замороженные ягоды — 500 г"]]],
+  ["Прочее",[["sour","Сметана 10%, чеснок, специи"]]]
+];
+
+/* ---------- dates ---------- */
+const pad = n => String(n).padStart(2,"0");
+const iso = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+const parse = s => { const [y,m,d]=s.split("-").map(Number); return new Date(y,m-1,d); };
+const dayIdx = s => Math.round((Date.UTC(...s.split("-").map((v,i)=>i===1?v-1:+v)) - Date.UTC(2026,10,9))/86400000);
+const weekNo = s => Math.max(1, Math.floor(dayIdx(s)/7)+1);
+const addDays = (s,n) => { const d=parse(s); d.setDate(d.getDate()+n); return iso(d); };
+const TODAY = iso(new Date());
+function gymOf(s){ const w=parse(s).getDay(); const i={1:0,3:1,5:2}[w]; if(i===undefined) return null; return (weekNo(s)%2 ? ["А","Б","А"] : ["Б","А","Б"])[i]; }
+function retinolOf(s){ const w=parse(s).getDay(), k=weekNo(s), d=dayIdx(s);
+  if(k<=2) return w===2||w===6; if(k<=4) return w===1||w===3||w===5; return d%2===0; }
+function todosOf(s){ const w=parse(s).getDay(), out=[];
+  if(w===0) out.push("Утром натощак: вес и талия — вкладка «Замеры»","12:00 — готовка на Пн–Ср");
+  if(w===3) out.push("Вечером — готовка на Чт–Пт");
+  if(w===6) out.push("Заказать продукты — вкладка «Покупки»");
+  return out; }
+function checksOf(s){ const list=[["bf","Завтрак по плану"],["lunch","Обед из контейнера"],["dinner","Ужин по плану"],["steps","8 000+ шагов"]];
+  if(gymOf(s)) list.push(["gym","Зал, тренировка "+gymOf(s)]);
+  list.push(["noalc","Без алкоголя"],["skin","Уход утром и вечером"],["sleep","Отбой до 00:00"]); return list; }
+
+/* ---------- state + storage ---------- */
+let state = { days:{}, body:[], shop:{week:"",checked:{}} };
+const LS="myday-v1";
+function lsLoad(){ try{ const v=JSON.parse(localStorage.getItem(LS)||"null"); if(v) state=Object.assign(state,v);}catch(e){} }
+function lsSave(){ try{ localStorage.setItem(LS,JSON.stringify(state)); }catch(e){} }
+const busy={};
+function save(){ lsSave(); }
+function note(t){ document.getElementById("store-note").textContent=t; }
+
+/* ---------- render ---------- */
+const $=id=>document.getElementById(id);
+const el=(tag,cls,text)=>{ const e=document.createElement(tag); if(cls) e.className=cls; if(text!=null) e.textContent=text; return e; };
+
+function renderHeader(){
+  const d=parse(TODAY);
+  $("date").textContent=`${DOW_FULL[d.getDay()]}, ${d.getDate()} ${MON[d.getMonth()]} · неделя ${weekNo(TODAY)}`;
+  const g=gymOf(TODAY);
+  $("headline").textContent = g ? `Сегодня зал: тренировка ${g}` : "Сегодня без зала — добираем шаги";
+}
+
+function renderToday(){
+  const v=$("v-today"); v.replaceChildren();
+  const g=gymOf(TODAY), r=retinolOf(TODAY), w=parse(TODAY).getDay();
+  // verdict
+  const c0=el("div","card"); const pills=el("div","verdict");
+  pills.append(el("span","pill"+(g?"":" off"), g?`Зал · ${g}`:"Отдых от зала"));
+  pills.append(el("span","pill"+(r?" warm":" off"), r?"Ретинол вечером":"Без ретинола"));
+  pills.append(el("span","pill", "2 200 ккал · 170 г белка"));
+  c0.append(pills);
+  const todos=todosOf(TODAY); todos.forEach(t=>c0.append(el("div","todo",t)));
+  v.append(c0);
+  // checklist
+  const c1=el("div","card"); const hd=el("div"); hd.style.cssText="display:flex;justify-content:space-between;align-items:baseline";
+  hd.append(el("h2",null,"Отметки дня"));
+  const list=checksOf(TODAY), day=state.days[TODAY]||{};
+  const done=list.filter(([k])=>day[k]).length;
+  hd.append(el("span","score",`${done} из ${list.length}`)); c1.append(hd);
+  const box=el("div","checks");
+  list.forEach(([k,label])=>{
+    const lab=el("label","check"+(day[k]?" done":"")); const inp=document.createElement("input");
+    inp.type="checkbox"; inp.id="c-"+k; inp.checked=!!day[k];
+    inp.addEventListener("change",()=>{ const cur=Object.assign({},state.days[TODAY]||{}); if(inp.checked) cur[k]=true; else delete cur[k];
+      state.days=Object.assign({},state.days,{[TODAY]:cur}); renderToday(); save("log"); });
+    lab.append(inp, el("span",null,label)); box.append(lab);
+  });
+  c1.append(box);
+  // streak
+  const st=el("div","streak");
+  for(let i=13;i>=0;i--){ const s=addDays(TODAY,-i), dd=state.days[s]||{}, n=checksOf(s).length, k=checksOf(s).filter(([x])=>dd[x]).length;
+    const lv = k===0?"": k/n<.5?"l1": k/n<.85?"l2":"l3"; const sq=el("i",lv+(i===0?" today":"")); sq.title=`${s}: ${k} из ${n}`; st.append(sq); }
+  const lg=el("div","legend"); lg.append(el("span",null,"14 дней назад"), el("span",null,"сегодня"));
+  c1.append(st, lg); v.append(c1);
+  // food
+  const c2=el("div","card"); c2.append(el("h2",null,"Еда"));
+  const rows=el("div","rows");
+  MEALS.forEach(([a,b])=>{ const r0=el("div","row"); r0.append(el("b",null,a), el("span",null,b)); rows.append(r0); });
+  const dn=DINNER[w]; const r1=el("div","row"); const sp=el("span"); sp.append(el("div",null,dn.t), el("div","mode",dn.m));
+  r1.append(el("b",null,"Ужин"), sp); rows.append(r1); c2.append(rows); v.append(c2);
+  // gym
+  const c3=el("div","card"); c3.append(el("h2",null, g?`Зал · тренировка ${g}`:"Движение"));
+  if(g){ const ol=el("ol","ex"); WORKOUT[g].forEach(([n,s])=>{ const li=el("li",null,n); li.append(el("span",null,s)); ol.append(li); }); c3.append(ol);
+    c3.append(el("p","note","Разминка 10 мин. Вес — чтобы оставалось 2 повтора в запасе. После силовой 15 мин быстрой ходьбы в горку."));
+  } else c3.append(el("p",null,"8 000+ шагов: 20 минут пешком после ужина закрывают половину."));
+  v.append(c3);
+  // skin
+  const c4=el("div","card"); c4.append(el("h2",null,"Кожа"));
+  const sk=el("div","rows");
+  [["Утро","Гель → Crystal Purity 5% → SPF 50+"],["Вечер", r?"Гель → сыворотка с ретинолом (горошина) → Crystal Purity 5%":"Гель → Crystal Purity 5%"]].forEach(([a,b])=>{ const rr=el("div","row"); rr.append(el("b",null,a), el("span",null,b)); sk.append(rr); });
+  c4.append(sk); if(r) c4.append(el("p","note","Если после бритья раздражение — сегодня ретинол пропускаем."));
+  v.append(c4);
+}
+
+function renderWeek(){
+  const v=$("v-week"); v.replaceChildren();
+  const c=el("div","card"); c.append(el("h2",null,`Неделя ${weekNo(TODAY)}`));
+  const tw=el("div","tw"), t=el("table"); const th=el("tr"); ["День","Ужин","Зал","Ретинол"].forEach(h=>th.append(el("th",null,h))); t.append(th);
+  const d=parse(TODAY), monOff=(d.getDay()+6)%7;
+  for(let i=0;i<7;i++){ const s=addDays(TODAY,i-monOff), w=parse(s).getDay(); const tr=el("tr",s===TODAY?"is-today":"");
+    tr.append(el("td","num",`${DOW[w]} ${parse(s).getDate()}`), el("td",null,DINNER[w].t), el("td",null,gymOf(s)||"—"), el("td",null,retinolOf(s)?"да":"—")); t.append(tr); }
+  tw.append(t); c.append(tw); v.append(c);
+  const c2=el("div","card"); c2.append(el("h2",null,"Готовка"));
+  c2.append(el("p",null,"Воскресенье 12:00 — на Пн–Ср, среда вечером — на Чт–Пт: курица для обедов, гречка или рис, сырники на 3 завтрака (500 г творога + 2 яйца + 2 ст. л. манки, 180 °C 12–15 мин)."));
+  v.append(c2);
+}
+
+function renderBody(){
+  const v=$("v-body"); v.replaceChildren();
+  const c=el("div","card"); c.append(el("h2",null,"Замер — воскресенье утром, натощак"));
+  const f=el("form","m"); f.noValidate=true;
+  const mk=(id,lab,ph,step)=>{ const l=el("label",null,lab); const i=document.createElement("input"); i.type="number"; i.id=id; i.inputMode="decimal"; i.step=step; i.placeholder=ph; l.append(i); return l; };
+  f.append(mk("in-w","Вес, кг","97.0","0.1"), mk("in-t","Талия, см","—","0.5"));
+  const b=el("button","btn","Записать"); b.type="submit"; f.append(b);
+  f.addEventListener("submit",e=>{ e.preventDefault(); const w=parseFloat($("in-w").value.replace(",",".")), t=parseFloat($("in-t").value.replace(",","."));
+    if(!(w>30&&w<300) && !(t>40&&t<250)){ note("Впишите вес (кг) или талию (см) числом."); return; }
+    const rest=state.body.filter(x=>x.date!==TODAY); rest.push({date:TODAY, weight:w>30&&w<300?w:null, waist:t>40&&t<250?t:null});
+    rest.sort((a,b)=>a.date<b.date?-1:1); state.body=rest; note(""); renderBody(); save("body"); });
+  c.append(f); v.append(c);
+  const cb=el("div","card"); cb.append(el("h2",null,"Копия данных"));
+  cb.append(el("p","note","Все отметки и замеры хранятся только в этом браузере. Сохраните копию — её можно вставить обратно на новом телефоне."));
+  const act=el("div","actions"); const ex=el("button","btn ghost","Сохранить копию"); ex.type="button";
+  const im=el("button","btn ghost","Вставить копию"); im.type="button"; act.append(ex,im); cb.append(act);
+  const ta=document.createElement("textarea"); ta.id="backup"; ta.rows=4; ta.style.cssText="width:100%;font:12px var(--f-num);background:var(--bg);color:var(--ink);border:1px solid var(--line);border-radius:10px;padding:8px"; ta.hidden=true; cb.append(ta);
+  ex.addEventListener("click",()=>{ const txt=JSON.stringify(state); ta.hidden=false; ta.value=txt; ta.select();
+    const p=navigator.clipboard&&navigator.clipboard.writeText?navigator.clipboard.writeText(txt):Promise.reject();
+    p.then(()=>{ex.textContent="Скопировано — сохраните в заметки";}).catch(()=>{ex.textContent="Выделите текст и скопируйте";}); });
+  im.addEventListener("click",()=>{ if(ta.hidden){ ta.hidden=false; ta.value=""; ta.placeholder="Вставьте сюда копию и нажмите ещё раз"; ta.focus(); return; }
+    try{ const v2=JSON.parse(ta.value); if(!v2||typeof v2!=="object"||!v2.days) throw 0; state=Object.assign({days:{},body:[],shop:{week:"",checked:{}}},v2); lsSave(); renderAll(); note("Копия восстановлена."); }
+    catch(e){ note("Не получилось: вставьте текст копии целиком."); } });
+  v.append(cb);
+
+  const list=state.body.slice().sort((a,b)=>a.date<b.date?-1:1);
+  const c2=el("div","card"); c2.append(el("h2",null,"Как уходит живот"));
+  if(!list.length){ c2.append(el("p",null,"Пока нет замеров. Старт: 97 кг. Первый замер талии — в это воскресенье, на уровне пупка.")); v.append(c2); return; }
+  const first=list[0], last=list[list.length-1];
+  const big=el("div","big");
+  const stat=(label,a,b,u)=>{ const d=el("div"); d.append(el("small",null,label)); d.append(el("strong",null, b!=null? `${String(b).replace(".",",")} ${u}`:"—"));
+    if(a!=null&&b!=null&&list.length>1){ const dl=+(b-a).toFixed(1); d.append(el("small",dl<=0?"delta-good":"delta-bad",`${dl>0?"+":""}${String(dl).replace(".",",")} ${u} от старта`)); } return d; };
+  const fw=list.find(x=>x.weight!=null), lw=[...list].reverse().find(x=>x.weight!=null);
+  const ft=list.find(x=>x.waist!=null), lt=[...list].reverse().find(x=>x.waist!=null);
+  big.append(stat("Талия",ft&&ft.waist,lt&&lt.waist,"см"), stat("Вес",fw&&fw.weight,lw&&lw.weight,"кг"));
+  c2.append(big);
+  if(list.length>1) c2.append(chart(list));
+  const tw=el("div","tw"), t=el("table"); const h=el("tr"); h.append(el("th",null,"Дата"), el("th","num","Вес"), el("th","num","Талия")); t.append(h);
+  [...list].reverse().forEach(x=>{ const tr=el("tr"); tr.append(el("td","num",x.date.slice(8)+"."+x.date.slice(5,7)), el("td","num",x.weight!=null?String(x.weight).replace(".",","):"—"), el("td","num",x.waist!=null?String(x.waist).replace(".",","):"—")); t.append(tr); });
+  tw.append(t); c2.append(tw); v.append(c2);
+}
+
+function chart(list){
+  const W=520,H=170,P={l:34,r:34,t:12,b:22}, NS="http://www.w3.org/2000/svg";
+  const svg=document.createElementNS(NS,"svg"); svg.setAttribute("viewBox",`0 0 ${W} ${H}`); svg.style.width="100%"; svg.style.height="auto";
+  svg.setAttribute("role","img"); svg.setAttribute("aria-label","График веса и талии по неделям");
+  const xs=list.map((_,i)=>P.l+(list.length===1?0:i*(W-P.l-P.r)/(list.length-1)));
+  const mk=(n,a)=>{ const e=document.createElementNS(NS,n); for(const k in a) e.setAttribute(k,a[k]); return e; };
+  for(let i=0;i<=3;i++){ const y=P.t+i*(H-P.t-P.b)/3; svg.append(mk("line",{x1:P.l,x2:W-P.r,y1:y,y2:y,stroke:"var(--line)","stroke-width":1})); }
+  const series=[["weight","var(--muted)","кг",P.l-6,"end"],["waist","var(--accent)","см",W-P.r+6,"start"]];
+  series.forEach(([key,col,u,lx,anchor])=>{
+    const pts=list.map((x,i)=>[xs[i],x[key]]).filter(p=>p[1]!=null); if(!pts.length) return;
+    let lo=Math.min(...pts.map(p=>p[1])), hi=Math.max(...pts.map(p=>p[1])); if(hi-lo<2){ lo-=1; hi+=1; }
+    const y=v=>P.t+(hi-v)/(hi-lo)*(H-P.t-P.b);
+    svg.append(mk("polyline",{points:pts.map(p=>`${p[0]},${y(p[1])}`).join(" "),fill:"none",stroke:col,"stroke-width":2.2,"stroke-linejoin":"round"}));
+    const l=pts[pts.length-1]; svg.append(mk("circle",{cx:l[0],cy:y(l[1]),r:4,fill:col}));
+    const t1=mk("text",{x:lx,y:P.t+8,"text-anchor":anchor}); t1.textContent=`${hi} ${u}`; svg.append(t1);
+    const t2=mk("text",{x:lx,y:H-P.b,"text-anchor":anchor}); t2.textContent=`${lo}`; svg.append(t2);
+  });
+  const fl=mk("text",{x:P.l,y:H-4}); fl.textContent=list[0].date.slice(8)+"."+list[0].date.slice(5,7); svg.append(fl);
+  const ll=mk("text",{x:W-P.r,y:H-4,"text-anchor":"end"}); ll.textContent=list[list.length-1].date.slice(8)+"."+list[list.length-1].date.slice(5,7); svg.append(ll);
+  const wrap=el("div"); wrap.append(svg); const lg=el("p","note","Зелёная линия — талия (шкала справа), серая — вес (шкала слева)."); wrap.append(lg); return wrap;
+}
+
+function weekKey(s){ const d=parse(s), mon=addDays(s,-((d.getDay()+6)%7)); return mon; }
+function renderShop(){
+  const v=$("v-shop"); v.replaceChildren();
+  const wk=weekKey(TODAY); if(state.shop.week!==wk){ state.shop={week:wk,checked:{}}; }
+  const c=el("div","card"); c.append(el("h2",null,"Продукты на неделю"));
+  SHOP.forEach(([g,items])=>{ const grp=el("div","shopgrp"); grp.append(el("h3",null,g));
+    items.forEach(([k,label])=>{ const lab=el("label","check"+(state.shop.checked[k]?" done":"")); const i=document.createElement("input"); i.type="checkbox"; i.id="s-"+k; i.checked=!!state.shop.checked[k];
+      i.addEventListener("change",()=>{ const ch=Object.assign({},state.shop.checked); if(i.checked) ch[k]=true; else delete ch[k]; state.shop={week:wk,checked:ch}; renderShop(); save("shop"); });
+      lab.append(i, el("span",null,label)); grp.append(lab); });
+    c.append(grp); });
+  const act=el("div","actions");
+  const cp=el("button","btn ghost","Скопировать список"); cp.type="button";
+  cp.addEventListener("click",()=>{ const txt=SHOP.map(([g,it])=>g+":\n"+it.filter(([k])=>!state.shop.checked[k]).map(([,l])=>"— "+l).join("\n")).join("\n\n");
+    const p=navigator.clipboard&&navigator.clipboard.writeText?navigator.clipboard.writeText(txt):Promise.reject();
+    p.then(()=>{cp.textContent="Скопировано";}).catch(()=>{ const ta=el("textarea"); ta.value=txt; ta.style.cssText="width:100%;height:160px"; c.append(ta); ta.select(); cp.textContent="Выделите и скопируйте"; }); });
+  act.append(cp); c.append(act);
+  c.append(el("p","note","Галочки сбрасываются сами каждый понедельник."));
+  v.append(c);
+}
+
+function renderAll(){ renderHeader(); renderToday(); renderWeek(); renderBody(); renderShop(); }
+
+/* ---------- tabs ---------- */
+document.querySelectorAll(".tabs button").forEach(b=>b.addEventListener("click",()=>{
+  document.querySelectorAll(".tabs button").forEach(x=>x.setAttribute("aria-selected",x===b?"true":"false"));
+  ["today","week","body","shop"].forEach(n=>$("v-"+n).hidden = n!==b.dataset.v);
+  try{ localStorage.setItem("myday-tab",b.dataset.v);}catch(e){}
+}));
+try{ const t=localStorage.getItem("myday-tab"); if(t){ const b=document.querySelector(`.tabs button[data-v="${t}"]`); if(b) b.click(); } }catch(e){}
+
+/* ---------- boot ---------- */
+lsLoad(); renderAll();
+note("Данные хранятся на этом телефоне. Раз в месяц делайте копию: вкладка «Замеры» → «Сохранить копию».");
+if("serviceWorker" in navigator){ navigator.serviceWorker.register("sw.js").catch(()=>{}); }
+})();
+</script>
+</body>
+</html>
